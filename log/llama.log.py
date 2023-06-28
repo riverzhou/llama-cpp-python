@@ -22,5 +22,6 @@ with open(logJsonFile, 'a') as fJson:
         logDict = {'time':ts, 'log':json.loads(logDataStr)}
         logJsonStr = json.dumps(logDict, indent=4, ensure_ascii=False)
         fJson.write(logJsonStr + '\n')
+        fJson.write('='*50 + '\n')
         fJson.flush()
 
