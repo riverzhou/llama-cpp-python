@@ -478,6 +478,8 @@ async def create_chat_completion(
     }
     kwargs = body.dict(exclude=exclude)
 
+    log = kwargs.copy()
+
     if body.logit_bias is not None:
         kwargs['logits_processor'] = llama_cpp.LogitsProcessorList([
             make_logit_bias_processor(llama, body.logit_bias, body.logit_bias_type),
@@ -490,11 +492,22 @@ async def create_chat_completion(
             async with inner_send_chan:
                 try:
                     iterator: Iterator[llama_cpp.ChatCompletionChunk] = await run_in_threadpool(llama.create_chat_completion, **kwargs)  # type: ignore
+                    streamRole = ''
+                    streamContent = ''
                     async for chat_chunk in iterate_in_threadpool(iterator):
                         await inner_send_chan.send(dict(data=json.dumps(chat_chunk)))
+
+                        if 'role' in chat_chunk['choices'][0]['delta']:
+                            streamRole  = chat_chunk['choices'][0]['delta']['role']
+                        if 'content' in chat_chunk['choices'][0]['delta']:
+                            streamContent += chat_chunk['choices'][0]['delta']['content']
+
                         if await request.is_disconnected():
                             raise anyio.get_cancelled_exc_class()()
                     await inner_send_chan.send(dict(data="[DONE]"))
+                    log['messages'].append({'role':streamRole, 'content':streamContent})
+                    print(json.dumps(log,indent=4))
+
                 except anyio.get_cancelled_exc_class() as e:
                     print("disconnected")
                     with anyio.move_on_after(1, shield=True):
