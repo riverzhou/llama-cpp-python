@@ -122,7 +122,8 @@ def create_app(settings: Optional[Settings] = None):
     if settings.redishost != 'None':
         global rediscon
         try:
-            redscon = redis.StrictRedis(host=settings.redishost, port=settings.redisport, db=settings.redisdb)
+            rediscon = redis.StrictRedis(host=settings.redishost, port=settings.redisport, db=settings.redisdb)
+            print(rediscon)
         except Exception as e:
             print(e)
 
