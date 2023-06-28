@@ -1,5 +1,6 @@
 import json
 import multiprocessing
+import redis
 from threading import Lock
 from functools import partial
 from typing import Iterator, List, Optional, Union, Dict
@@ -85,13 +86,22 @@ class Settings(BaseSettings):
     port: int = Field(
         default=8000, description="Listen port"
     )
+    redishost: str = Field(
+        default="None", description="Redis server address"
+    )
+    redisport: int = Field(
+        default=6379, description="Redis server port"
+    )
+    redisdb: int = Field(
+        default=0, description="Redis server db"
+    )
 
 
 router = APIRouter()
 
 settings: Optional[Settings] = None
 llama: Optional[llama_cpp.Llama] = None
-
+rediscon: Optional[redis.StrictRedis] = None
 
 def create_app(settings: Optional[Settings] = None):
     if settings is None:
@@ -108,6 +118,14 @@ def create_app(settings: Optional[Settings] = None):
         allow_headers=["*"],
     )
     app.include_router(router)
+
+    if settings.redishost != 'None':
+        global rediscon
+        try:
+            redscon = redis.StrictRedis(host=settings.redishost, port=settings.redisport, db=settings.redisdb)
+        except Exception as e:
+            print(e)
+
     global llama
     llama = llama_cpp.Llama(
         model_path=settings.model,
@@ -506,7 +524,11 @@ async def create_chat_completion(
                             raise anyio.get_cancelled_exc_class()()
                     await inner_send_chan.send(dict(data="[DONE]"))
                     log['messages'].append({'role':streamRole, 'content':streamContent})
-                    print(json.dumps(log,indent=4))
+
+                    #print(json.dumps(log,indent=4))
+                    if rediscon is not None:
+                        logstr = json.dumps(log)
+                        rediscon.rpush('llama.cpp', logstr)
 
                 except anyio.get_cancelled_exc_class() as e:
                     print("disconnected")

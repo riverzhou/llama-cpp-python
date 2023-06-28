@@ -18,7 +18,7 @@ setup(
     packages=["llama_cpp", "llama_cpp.server"],
     install_requires=["typing-extensions>=4.5.0", "numpy>=1.20.0", "diskcache>=5.6.1"],
     extras_require={
-        "server": ["uvicorn>=0.21.1", "fastapi>=0.95.0", "sse-starlette>=1.3.3"],
+        "server": ["uvicorn>=0.21.1", "fastapi>=0.95.0", "sse-starlette>=1.3.3", "redis[hiredis]>= 4.1.0"],
     },
     python_requires=">=3.7",
     classifiers=[
