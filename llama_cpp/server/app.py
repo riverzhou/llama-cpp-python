@@ -548,6 +548,20 @@ async def create_chat_completion(
         completion: llama_cpp.ChatCompletion = await run_in_threadpool(
             llama.create_chat_completion, **kwargs  # type: ignore
         )
+        #print(json.dumps(completion,indent=4))
+
+        messageRole = ''
+        messageContent = ''
+        if 'role' in completion['choices'][0]['message']:
+            messageRole  = completion['choices'][0]['message']['role']
+        if 'content' in completion['choices'][0]['message']:
+            messageContent = completion['choices'][0]['message']['content']
+        log['messages'].append({'role':messageRole, 'content':messageContent})
+
+        #print(json.dumps(log,indent=4))
+        if rediscon is not None:
+            logstr = json.dumps(log)
+            rediscon.rpush('llama.cpp', logstr)
         return completion
 
 
